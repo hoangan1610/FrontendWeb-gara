@@ -23,6 +23,7 @@ const RegistrationForm = () => {
         confirm_password: ""
     });
     const [errors, setErrors] = useState({});
+    const [serverError, setServerError] = useState(""); 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -102,20 +103,33 @@ const RegistrationForm = () => {
     };
 
     // Xử lý submit form
-    const handleSubmit = async (e) => {
+     const handleSubmit = async (e) => {
         e.preventDefault();
-        const isFormValid = validateForm(); // Kiểm tra tất cả các trường
-        if (isFormValid) {
-            setIsLoading(true);
-            try {
-                dispatch(regist(formData, setResult));
-            } catch (error) {
-                console.error("Registration failed:", error);
-            } finally {
-                setIsLoading(false);
-            }
+        
+        // Clear server error trước khi submit
+        setServerError("");
+
+        // Validate form và check nếu có lỗi
+        const isValid = validateForm();
+        if (!isValid) {
+            return; // Dừng lại nếu form không hợp lệ
+        }
+
+        setIsLoading(true); // Bật loading
+
+        try {
+            const data = await dispatch(regist(formData));
+            // nếu thành công → chuyển sang nhập OTP
+            navigate("/auth/regist/enter-otp", { state: { email: formData.email } });
+        } catch (err) {
+            // nếu lỗi từ backend (400, 500) → hiển thị ở form
+            console.error("Registration error:", err);
+            setServerError(err.message || "Đã xảy ra lỗi trong quá trình đăng ký");
+        } finally {
+            setIsLoading(false); // Tắt loading
         }
     };
+
     // Chuyển hướng sau khi đăng ký thành công
     useEffect(() => {
         if (redirecting) {

@@ -73,46 +73,84 @@ axiosInstance.interceptors.response.use(
 );
 
 // Các hàm API để gọi GET, POST, PUT, PATCH, DELETE
-export const getDataAPI = async (url) => {
-    const token = localStorage.getItem('access_token');
-    const res = await axiosInstance.get(url, {
-        headers: { Authorization: token }
-    });
+export const getDataAPI = async (url, token) => {
+    // Sử dụng token từ parameter, fallback to localStorage
+    const authToken = token || localStorage.getItem('access_token');
+    
+    const config = {};
+    if (authToken) {
+        config.headers = { Authorization: authToken };
+    }
+    
+    const res = await axiosInstance.get(url, config);
     return res;
 };
 
-export const postDataAPI = async (url, post, options) => {
-    const token = localStorage.getItem('access_token');
-    const res = await axiosInstance.post(url, post, {
-        ...options,
-        headers: { Authorization: token }
+export const postDataAPI = async (url, post, token) => {
+    // Sử dụng token từ parameter, fallback to localStorage
+    const authToken = token || localStorage.getItem('access_token');
+    
+    const config = {};
+    if (authToken) {
+        config.headers = { Authorization: authToken };
+    }
+    
+    console.log("postDataAPI debug:", {
+        url,
+        hasToken: !!authToken,
+        tokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'null'
     });
+    
+    const res = await axiosInstance.post(url, post, config);
     return res;
 };
 
-export const putDataAPI = async (url, put) => {
-    const token = localStorage.getItem('access_token');
-    const res = await axiosInstance.put(url, put, {
-        headers: { Authorization: token }
-    });
+export const putDataAPI = async (url, put, token) => {
+    const authToken = token || localStorage.getItem('access_token');
+    
+    const config = {};
+    if (authToken) {
+        config.headers = { Authorization: authToken };
+    }
+    
+    const res = await axiosInstance.put(url, put, config);
     return res;
 };
 
-export const patchDataAPI = async (url, patch) => {
-    const token = localStorage.getItem('access_token');
-    const res = await axiosInstance.patch(url, patch, {
-        headers: { Authorization: token }
-    });
+export const patchDataAPI = async (url, patch, token) => {
+    const authToken = token || localStorage.getItem('access_token');
+    
+    const config = {};
+    if (authToken) {
+        config.headers = { Authorization: authToken };
+    }
+    
+    const res = await axiosInstance.patch(url, patch, config);
     return res;
 };
 
-export const deleteDataAPI = async (url) => {
-    const token = localStorage.getItem('access_token');
-    const res = await axiosInstance.delete(url, {
-        headers: { Authorization: token }
-    });
+export const deleteDataAPI = async (url, token) => {
+    const authToken = token || localStorage.getItem('access_token');
+    
+    const config = {};
+    if (authToken) {
+        config.headers = { Authorization: authToken };
+    }
+    
+    const res = await axiosInstance.delete(url, config);
     return res;
 };
+
+// Thêm các functions riêng cho public endpoints (không cần token)
+export const postPublicDataAPI = async (url, post) => {
+    console.log("postPublicDataAPI - No auth header:", { url, post });
+    const res = await axiosInstance.post(url, post);
+    return res;
+};
+
+export const getPublicDataAPI = async (url) => {
+    const res = await axiosInstance.get(url);
+}
 
 export const fetchPublicKey = async () => {
     const response = await axiosInstance.get('/auth/public-key');

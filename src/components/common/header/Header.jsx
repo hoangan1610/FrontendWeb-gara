@@ -10,6 +10,7 @@ import { PRODUCT_ACTION_TYPES, headerSearchProducts } from '../../../redux/actio
 import Headroom from 'react-headroom';
 import { postDataAPI } from '../../../utils/fetchData';
 import { GLOBALTYPES } from '../../../redux/actions/globalTypes';
+import logo from '../../../images/logo.png';
 const Header = ({ setIsSideBarOpen }) => {
 
     const auth = useSelector(state => state.auth);
@@ -119,6 +120,11 @@ const Header = ({ setIsSideBarOpen }) => {
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                     >
+                        <img
+                        src={logo}
+                        alt="Logo"
+                        className="h-[80px] w-auto select-none"
+                    />
                         <div className='text-5xl select-none'>HAQ</div>
                     </div>
                     <div className="search-bar w-[40%] justify-center items-center hidden lg:!flex flex-row">

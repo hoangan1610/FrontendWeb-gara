@@ -16,35 +16,155 @@ export const updateToken = (newToken) => async (dispatch) => {
 
 export const login = (data) => async (dispatch) => {
     try {
+        // Dispatch loading state
+        dispatch({ type: GLOBALTYPES.LOADING, payload: true });
 
-        const res = await postDataAPI("auth/login", data)
+        console.log("Login data being sent:", data); // Debug: kiểm tra data gửi đi
+        console.log("Email:", data.email);
+        console.log("Password:", data.password);
+        console.log("Password length:", data.password?.length);
 
-        if (res.status === 200) {
+        const res = await postDataAPI("auth/login", data);
 
+        // Debug: Log toàn bộ response để kiểm tra cấu trúc
+        console.log("Full response object:", res);
+        console.log("Response status:", res.status);
+        console.log("Response data:", res.data);
+        console.log("Response headers:", res.headers);
+
+        // Kiểm tra nhiều điều kiện có thể
+        const isSuccessStatus = res.status === 200 || res.status === 201;
+        const hasData = res.data;
+        const hasToken = res.data?.access_token;
+        const hasUser = res.data?.user;
+
+        console.log("Status check:", isSuccessStatus);
+        console.log("Has data:", hasData);
+        console.log("Has token:", hasToken);
+        console.log("Has user:", hasUser);
+
+        if (isSuccessStatus && hasData && hasToken && hasUser) {
+            // Dispatch auth success
             dispatch({
                 type: GLOBALTYPES.AUTH,
-                payload: { token: "Bearer " + res.data.access_token, user: res.data.user, role: res.data.user.role }
-            })
+                payload: { 
+                    token: "Bearer " + res.data.access_token, 
+                    user: res.data.user, 
+                    role: res.data.user.role 
+                }
+            });
 
-            dispatch({ type: CART_ACTION_TYPES.CLEAR_CART })
-            dispatch({ type: PRODUCT_ACTION_TYPES.INIT_FOLLOWING_PRODUCTS })
+            // Clear cart và init following products
+            dispatch({ type: CART_ACTION_TYPES.CLEAR_CART });
+            dispatch({ type: PRODUCT_ACTION_TYPES.INIT_FOLLOWING_PRODUCTS });
 
-            localStorage.setItem("firstLogin", true)
-            localStorage.setItem("access_token", "Bearer " + res.data.access_token)
-            localStorage.setItem("refresh_token", "Bearer " + res.data.refresh_token)
+            // Lưu vào localStorage
+            localStorage.setItem("firstLogin", "true");
+            localStorage.setItem("access_token", "Bearer " + res.data.access_token);
+            
+            if (res.data.refresh_token) {
+                localStorage.setItem("refresh_token", "Bearer " + res.data.refresh_token);
+            }
 
-            dispatch({ type: GLOBALTYPES.SUCCESS_ALERT, payload: res.data.message })
-        }
-        else {
-            dispatch({ type: GLOBALTYPES.ERROR_ALERT, payload: res.data.message })
+            // Hiển thị thông báo thành công
+            dispatch({ 
+                type: GLOBALTYPES.SUCCESS_ALERT, 
+                payload: res.data.message || "Đăng nhập thành công!" 
+            });
+
+            // Clear loading
+            dispatch({ type: GLOBALTYPES.LOADING, payload: false });
+
+            return { success: true };
+        } else {
+            // Response không thành công - Debug chi tiết
+            console.log("Login failed - analyzing response:");
+            console.log("- Status success:", isSuccessStatus);
+            console.log("- Has data:", hasData);
+            console.log("- Has access_token:", hasToken);
+            console.log("- Has user:", hasUser);
+            
+            let errorMessage = "Đăng nhập thất bại";
+            
+            if (res.data?.message) {
+                errorMessage = res.data.message;
+            } else if (!hasToken) {
+                errorMessage = "Không nhận được token từ server";
+            } else if (!hasUser) {
+                errorMessage = "Không nhận được thông tin user từ server";
+            }
+            
+            dispatch({ 
+                type: GLOBALTYPES.ERROR_ALERT, 
+                payload: errorMessage 
+            });
+
+            dispatch({ type: GLOBALTYPES.LOADING, payload: false });
+            return { success: false, error: errorMessage };
         }
     } catch (err) {
+        console.error("Login error details:", err);
+        console.log("Error response:", err.response);
+        console.log("Error request:", err.request);
+        console.log("Error message:", err.message);
+
+        // Clear loading
+        dispatch({ type: GLOBALTYPES.LOADING, payload: false });
+
+        // Xử lý các loại lỗi khác nhau
+        let errorMessage = "Lỗi khi đăng nhập";
+
+        if (err.response) {
+            // Lỗi HTTP response
+            const status = err.response.status;
+            const data = err.response.data;
+
+            console.log("HTTP Error - Status:", status);
+            console.log("HTTP Error - Data:", data);
+
+            switch (status) {
+                case 400:
+                    errorMessage = data.message || "Dữ liệu đăng nhập không hợp lệ";
+                    break;
+                case 401:
+                    errorMessage = data.message || "Email hoặc mật khẩu không đúng";
+                    break;
+                case 404:
+                    errorMessage = "Tài khoản không tồn tại";
+                    break;
+                case 403:
+                    errorMessage = data.message || "Tài khoản chưa được kích hoạt";
+                    break;
+                case 422:
+                    errorMessage = data.message || "Dữ liệu đầu vào không hợp lệ";
+                    break;
+                case 429:
+                    errorMessage = "Quá nhiều lần thử. Vui lòng đợi một chút";
+                    break;
+                case 500:
+                    errorMessage = "Lỗi máy chủ. Vui lòng thử lại sau";
+                    break;
+                default:
+                    errorMessage = data.message || `Lỗi ${status}`;
+            }
+        } else if (err.request) {
+            // Lỗi network
+            console.log("Network Error - Request made but no response received");
+            errorMessage = "Không thể kết nối đến máy chủ. Kiểm tra kết nối mạng";
+        } else if (err.message) {
+            // Lỗi khác
+            console.log("Other Error:", err.message);
+            errorMessage = err.message;
+        }
+
         dispatch({
             type: GLOBALTYPES.ERROR_ALERT,
-            payload: "Lỗi khi đăng nhập"
-        })
+            payload: errorMessage
+        });
+
+        return { success: false, error: errorMessage };
     }
-}
+};
 
 export const regist = (data, setResult) => async (dispatch) => {
     try {
@@ -200,40 +320,73 @@ export const verifyResetPasswordOTP = (data, setResult) => async (dispatch) => {
     }
 }
 
-export const verifyRegistOTP = (data, handleVerifyResult) => async (dispatch) => {
+export const verifyRegistOTP = (data) => async (dispatch) => {
     try {
-        const res = await postDataAPI("auth/verify-register-otp", data)
-        if (res.status === 200) {
-            dispatch({ type: GLOBALTYPES.SUCCESS_ALERT, payload: res.data.message })
-            handleVerifyResult(res.data.message);
+        // Sử dụng postDataAPI thay vì fetch để đồng nhất với các action khác
+        const res = await postDataAPI("auth/verify-register-otp", data);
+        
+        if (res.status === 200 && res.data.user && res.data.token) {
+            // Trả về kết quả thành công
+            return {
+                success: true,
+                user: res.data.user,
+                token: "Bearer " + res.data.token, // Thêm Bearer prefix
+                message: res.data.message
+            };
         } else {
-            dispatch({ type: GLOBALTYPES.ERROR_ALERT, payload: res.data.message })
+            // Trả về kết quả thất bại
+            return {
+                success: false,
+                message: res.data.message || 'OTP verification failed'
+            };
         }
-    } catch (err) {
-        const errorMessage = err.response?.data?.message || "An error occurred"
-        dispatch({
-            type: GLOBALTYPES.ERROR_ALERT,
-            payload: errorMessage
-        })
+    } catch (error) {
+        console.error('OTP verification error:', error);
+        
+        // Xử lý lỗi từ server
+        let errorMessage = 'Network error occurred';
+        if (error.response && error.response.data && error.response.data.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        return {
+            success: false,
+            message: errorMessage
+        };
     }
-}
+};
 
-export const resendOTPRegistration = (data, setResult) => async (dispatch) => {
+export const resendOTPRegistration = (data) => async (dispatch) => {
     try {
-        const res = await postDataAPI("auth/resend-otp", data)
+        // Sử dụng postDataAPI thay vì fetch để đồng nhất
+        const res = await postDataAPI("auth/resend-otp", data);
+        
         if (res.status === 200) {
-            dispatch({ type: GLOBALTYPES.SUCCESS_ALERT, payload: res.data.message })
-            setResult({ success: true, message: res.data.message })
+            return {
+                success: true,
+                message: res.data.message || 'OTP has been resent'
+            };
         } else {
-            dispatch({ type: GLOBALTYPES.ERROR_ALERT, payload: res.data.message })
-            setResult({ success: false, message: res.data.message })
+            return {
+                success: false,
+                message: res.data.message || 'Failed to resend OTP'
+            };
         }
-    } catch (err) {
-        const errorMessage = err.response?.data?.message || "An error occurred"
-        setResult({ success: false, message: errorMessage })
-        dispatch({
-            type: GLOBALTYPES.ERROR_ALERT,
-            payload: errorMessage
-        })
+    } catch (error) {
+        console.error('Resend OTP error:', error);
+        
+        let errorMessage = 'Network error occurred';
+        if (error.response && error.response.data && error.response.data.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        return {
+            success: false,
+            message: errorMessage
+        };
     }
-}
+};
