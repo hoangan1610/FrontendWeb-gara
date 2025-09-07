@@ -125,6 +125,7 @@ const Header = ({ setIsSideBarOpen }) => {
                         alt="Logo"
                         className="h-[80px] w-auto select-none"
                     />
+                        <div className='text-5xl select-none'>HAQ</div>
                     </div>
                     <div className="search-bar w-[40%] justify-center items-center hidden lg:!flex flex-row">
                         <select className="border-none p-2 w-[100px] bg-inherit text-inherit"

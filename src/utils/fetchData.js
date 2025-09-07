@@ -150,8 +150,7 @@ export const postPublicDataAPI = async (url, post) => {
 
 export const getPublicDataAPI = async (url) => {
     const res = await axiosInstance.get(url);
-    return res;
-};
+}
 
 export const fetchPublicKey = async () => {
     const response = await axiosInstance.get('/auth/public-key');

@@ -148,6 +148,12 @@ const RegistrationForm = () => {
         }
     }, [redirecting, dispatch, navigate]);
 
+    useEffect(() => {
+        if (result) {
+            navigate('/auth/regist/enter-otp', { state: { email: formData.email} });
+        }
+    }, [result, navigate]);
+
     return (
         <div className="min-h-[70vh] w-full bg-gradient-to-br from-[--tertiary-background-color] to-[--secondary-background-color] py-12 px-4 sm:px-6 lg:px-8">
             {redirecting ? (

@@ -166,74 +166,29 @@ export const login = (data) => async (dispatch) => {
     }
 };
 
-export const regist = (data) => async (dispatch) => {
-  try {
-    // Dispatch loading state (nếu cần)
-    dispatch({
-      type: GLOBALTYPES.LOADING,
-      payload: true,
-    });
+export const regist = (data, setResult) => async (dispatch) => {
+    try {
 
-    const res = await postDataAPI("auth/regist", data);
 
-    // Kiểm tra response structure
-    if (!res.data) {
-      throw new Error("Invalid response from server");
+        const res = await postDataAPI("auth/regist", data)
+        if (res.status === 200) {
+
+            dispatch({ type: GLOBALTYPES.SUCCESS_ALERT, payload: res.data.message })
+            dispatch({ type: GLOBALTYPES.REDIRECTING, payload: true })
+        } else {
+            dispatch({ type: GLOBALTYPES.ERROR_ALERT, payload: res.data.message })
+
+        }
+        setResult(res.data.message)
+    } catch (err) {
+        setResult(err.response.data.message)
+        dispatch({
+            type: GLOBALTYPES.ERROR_ALERT,
+            payload: err.response.data.message
+        })
+
     }
-
-    // Thông báo thành công
-    dispatch({
-      type: GLOBALTYPES.SUCCESS_ALERT,
-      payload: res.data.message || "Đăng ký thành công",
-    });
-
-    // Clear loading state
-    dispatch({
-      type: GLOBALTYPES.LOADING,
-      payload: false,
-    });
-
-    // Trả dữ liệu về component để xử lý tiếp (navigate)
-    return res.data;
-
-  } catch (err) {
-    console.error("Registration error:", err);
-    
-    // Clear loading state
-    dispatch({
-      type: GLOBALTYPES.LOADING,
-      payload: false,
-    });
-
-    // Xử lý các loại lỗi khác nhau
-    let errorMsg = "Đăng ký thất bại";
-    
-    if (err.response) {
-      // Lỗi từ server (4xx, 5xx)
-      errorMsg = err.response.data?.message || `Server error: ${err.response.status}`;
-    } else if (err.request) {
-      // Lỗi network (không có response)
-      errorMsg = "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.";
-    } else if (err.message) {
-      // Lỗi khác
-      errorMsg = err.message;
-    }
-
-    // Thông báo lỗi
-    dispatch({
-      type: GLOBALTYPES.ERROR_ALERT,
-      payload: errorMsg,
-    });
-
-    // Ném lỗi để component bắt trong catch
-    // Sử dụng Error object thay vì string để có thể truyền thêm thông tin
-    const error = new Error(errorMsg);
-    error.originalError = err;
-    error.status = err.response?.status;
-    
-    throw error;
-  }
-};
+}
 
 export const verifyEmail = ({ token, setIsLoading, setResult }) => async (dispatch) => {
     try {

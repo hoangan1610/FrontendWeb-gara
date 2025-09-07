@@ -10,21 +10,22 @@ const EnterOTP = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [resendCooldown, setResendCooldown] = useState(0);
-    
+
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
     const inputRefs = useRef([]);
-    
+
     const email = location.state?.email;
 
+    // Nếu không có email, redirect về regist
     useEffect(() => {
-        // Nếu không có email từ state, chuyển về regist
         if (!email) {
             navigate('/auth/regist');
         }
     }, [email, navigate]);
 
+    // Countdown resend
     useEffect(() => {
         let timer;
         if (resendCooldown > 0) {
@@ -37,13 +38,12 @@ const EnterOTP = () => {
 
     const handleInputChange = (index, value) => {
         if (value.length > 1) return;
-        
+
         const newOtp = [...otp];
         newOtp[index] = value;
         setOtp(newOtp);
         setError('');
 
-        // Auto focus next input
         if (value !== '' && index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
@@ -59,7 +59,7 @@ const EnterOTP = () => {
         e.preventDefault();
         const pastedData = e.clipboardData.getData('text/plain');
         const pastedDigits = pastedData.replace(/\D/g, '').slice(0, 6);
-        
+
         const newOtp = [...otp];
         for (let i = 0; i < pastedDigits.length; i++) {
             newOtp[i] = pastedDigits[i];
@@ -70,7 +70,7 @@ const EnterOTP = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const otpCode = otp.join('');
-        
+
         if (otpCode.length !== 6) {
             setError('Please enter all 6 digits');
             return;
@@ -78,33 +78,28 @@ const EnterOTP = () => {
 
         setLoading(true);
         setError('');
-        
+
         try {
-            // Gọi action với await
             const result = await dispatch(verifyRegistOTP({ email, otp: otpCode }));
-            
+
             if (result && result.success) {
-                // Cập nhật Redux store với thông tin user và token
-                dispatch({ 
-                    type: GLOBALTYPES.AUTH, 
-                    payload: { 
-                        user: result.user, 
+                dispatch({
+                    type: GLOBALTYPES.AUTH,
+                    payload: {
+                        user: result.user,
                         token: result.token,
-                        role: result.user.role 
-                    } 
+                        role: result.user.role,
+                    },
                 });
-                
-                // Lưu token vào localStorage như login thông thường
+
                 localStorage.setItem("firstLogin", true);
                 localStorage.setItem("access_token", result.token);
-                
-                // Hiển thị thông báo thành công
-                dispatch({ 
-                    type: GLOBALTYPES.SUCCESS_ALERT, 
-                    payload: result.message || 'Registration completed successfully!' 
+
+                dispatch({
+                    type: GLOBALTYPES.SUCCESS_ALERT,
+                    payload: result.message || 'Registration completed successfully!',
                 });
-                
-                // Chuyển về trang chủ
+
                 navigate('/');
             } else {
                 setError(result?.message || 'Invalid OTP code');
@@ -116,35 +111,39 @@ const EnterOTP = () => {
             setLoading(false);
         }
     };
-    
+
     const handleResendOTP = async () => {
         if (resendCooldown > 0) return;
-        
+
         setResendCooldown(60);
         try {
             const result = await dispatch(resendOTPRegistration({ email }));
             if (result && result.success) {
-                dispatch({ 
-                    type: GLOBALTYPES.SUCCESS_ALERT, 
-                    payload: 'OTP has been resent to your email' 
+                dispatch({
+                    type: GLOBALTYPES.SUCCESS_ALERT,
+                    payload: 'OTP has been resent to your email',
+                });
+            } else {
+                dispatch({
+                    type: GLOBALTYPES.ERROR_ALERT,
+                    payload: result?.message || 'Failed to resend OTP. Please try again.',
                 });
             }
         } catch (error) {
             console.error('Resend OTP failed:', error);
-            dispatch({ 
-                type: GLOBALTYPES.ERROR_ALERT, 
-                payload: 'Failed to resend OTP. Please try again.' 
+            dispatch({
+                type: GLOBALTYPES.ERROR_ALERT,
+                payload: 'Failed to resend OTP. Please try again.',
             });
         }
     };
-    
+
     useEffect(() => {
-        // Focus vào ô đầu tiên khi component mount
         inputRefs.current[0]?.focus();
     }, []);
 
     if (!email) {
-        return null; // Component sẽ redirect về forgot-password
+        return null;
     }
 
     return (
@@ -152,9 +151,7 @@ const EnterOTP = () => {
             <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">Verify OTP</h2>
-                    <p className="text-gray-600 mb-2">
-                        We've sent a 6-digit code to
-                    </p>
+                    <p className="text-gray-600 mb-2">We've sent a 6-digit code to</p>
                     <p className="text-blue-600 font-medium">{email}</p>
                 </div>
 
@@ -163,7 +160,7 @@ const EnterOTP = () => {
                         {otp.map((digit, index) => (
                             <input
                                 key={index}
-                                ref={el => inputRefs.current[index] = el}
+                                ref={(el) => (inputRefs.current[index] = el)}
                                 type="text"
                                 maxLength="1"
                                 value={digit}
@@ -176,39 +173,26 @@ const EnterOTP = () => {
                         ))}
                     </div>
 
-                    {error && (
-                        <p className="text-red-600 text-sm text-center">
-                            {error}
-                        </p>
-                    )}
+                    {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
                     <button
                         type="submit"
                         disabled={loading}
                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? (
-                            <BiLoaderAlt className="animate-spin h-5 w-5" />
-                        ) : (
-                            "Verify Code"
-                        )}
+                        {loading ? <BiLoaderAlt className="animate-spin h-5 w-5" /> : "Verify Code"}
                     </button>
                 </form>
 
                 <div className="text-center">
-                    <p className="text-gray-600 text-sm mb-2">
-                        Didn't receive the code?
-                    </p>
+                    <p className="text-gray-600 text-sm mb-2">Didn't receive the code?</p>
                     <button
                         type="button"
                         onClick={handleResendOTP}
                         disabled={resendCooldown > 0}
                         className="text-blue-600 hover:text-blue-500 font-medium transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
-                        {resendCooldown > 0 
-                            ? `Resend in ${resendCooldown}s` 
-                            : "Resend Code"
-                        }
+                        {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
                     </button>
                 </div>
 
